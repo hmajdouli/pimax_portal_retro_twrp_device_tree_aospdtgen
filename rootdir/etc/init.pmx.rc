@@ -1,0 +1,44 @@
+on init
+    chmod 0666 /dev/fpsdev0
+    # Add a cpuset for the camera daemon
+    # We want all cores for camera
+    mkdir /dev/cpuset/camera-daemon
+    write /dev/cpuset/camera-daemon/cpus 0-7
+    write /dev/cpuset/camera-daemon/mems 0
+    chown cameraserver cameraserver /dev/cpuset/camera-daemon
+    chown cameraserver cameraserver /dev/cpuset/camera-daemon/tasks
+    chmod 0660 /dev/cpuset/camera-daemon/tasks
+
+on fs
+    mkdir /mnt/vendor/persist/qca6490 0777 system system
+    mkdir /system/media/1080 0777 system system
+    mkdir /system/media/2160 0777 system system
+    mkdir /mnt/media_rw 0770 root media_rw
+	rm /mnt/vendor/persist/pimax/private/qvr/svrapi_config.txt
+	symlink /system/etc/qvr/svrapi_config.txt /mnt/vendor/persist/pimax/private/qvr/svrapi_config.txt
+	chown pmx_ro pmx_ro /mnt/vendor/persist/pimax/private/qvr/svrapi_config.txt
+
+on post-fs-data
+    # DTS_AUDIO START
+    mkdir /data/vendor/audio/dts 0771 media audio
+    # DTS_AUDIO END
+on boot	
+    chmod 0777 /mnt/vendor/persist/qca6490/wlan_mac.bin
+
+    write /sys/devices/platform/soc/a800000.ssusb/mode host
+    
+on property:persist.sys.pmx.logd.disable=1
+	stop logd
+
+on property:persist.sys.pmx.logd.disable=0
+    start logd
+    start logd-reinit
+
+#on property:persist.sys.pmx.mode.changing=true
+#    restart zygote
+
+service pictrlsvr /system/bin/pictrlsvr
+    class core
+    user root
+    group root system input wakelock
+    onrestart restart zygote
